@@ -1,3 +1,4 @@
 .direnv/
 .venv/
-data/
+*.csv
+__pycache__
