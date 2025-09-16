@@ -1,5 +1,6 @@
 import time
 from collections.abc import Callable
+from scipy.spatial.transform import Rotation as R
 
 import board
 import busio
@@ -26,7 +27,7 @@ def _next_time_step(t0: int, change_ns: int):
 def setup():
     global bno
 
-    i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
+    i2c = busio.I2C(board.SCL, board.SDA)
     # Sometimes, the IMU can have an address
     # that is different from what the library expects
     try:
@@ -38,7 +39,6 @@ def setup():
     bno.enable_feature(BNO_REPORT_GYROSCOPE)
     bno.enable_feature(BNO_REPORT_MAGNETOMETER)
     bno.enable_feature(BNO_REPORT_ROTATION_VECTOR)
-
 
 def basic_reading():
     global bno
@@ -59,8 +59,9 @@ def basic_reading():
             accel_x, accel_y, accel_z = bno.acceleration
             gyro_x, gyro_y, gyro_z = bno.gyro
             mag_x, mag_y, mag_z = bno.magnetic
-            rot_i, rot_j, rot_k, rot_real = bno.quaternion
-
+            rot_i, rot_j, rot_k, rot_real = qrot = bno.quaternion
+            
+            print(qrot)
             data = IMUData(
                 "bno085-testing",
                 time.perf_counter_ns() - t0,
@@ -137,17 +138,30 @@ def snapshot():
 
             output_to_csv(file, data)
 
+def yaw_pitch_roll():
+    global bno
+    
+    while True:
+        rot_i, rot_j, rot_k, rot_real = qrot = bno.quaternion
 
+        # The quaternion should never be all 0's,
+        # but it is as soon as the program starts, for some reason
+        if (qrot) == (0, 0, 0, 0):
+            continue
+
+        rot = R.from_quat([rot_i, rot_j, rot_k, rot_real])
+
+        print(rot.as_euler("xyz", degrees=True))
 
 def main():
+    setup()
     print("""Choose what you want to do:
     1. Basic test 
     2. Snapshot orientations""")
     choice = int(input(""))
 
-    choices: dict[int, Callable[..., None]] = {1: basic_reading, 2: snapshot}
+    choices: dict[int, Callable[..., None]] = {1: basic_reading, 2: snapshot, 3: yaw_pitch_roll}
 
-    setup()
     choices[choice]()
 
 

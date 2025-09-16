@@ -74,6 +74,7 @@
             packages = with python.pkgs; [
               venvShellHook
               pip
+              scipy
 
               # Add whatever else you'd like here.
               # pkgs.basedpyright
