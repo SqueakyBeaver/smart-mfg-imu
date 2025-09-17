@@ -95,5 +95,5 @@ class IMU(BNO08X_I2C):
         """
         r = R.from_quat([qx, qy, qz, qw])
 
-        yaw, pitch, roll = r.as_euler("xyz", degrees=True)
+        yaw, pitch, roll = r.as_euler("zyx", degrees=True)
         return (yaw, pitch, roll)
