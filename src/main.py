@@ -22,6 +22,7 @@ def basic_reading(scr: window):
     interval_ms = 10
     t0 = time.perf_counter_ns()
     timer = _next_time_step(t0, int(interval_ms * 1e6))
+    last_time = t0
 
     scr.refresh()
     with open("data/bno_test.csv", "w+") as file:
@@ -62,7 +63,13 @@ def basic_reading(scr: window):
                 + f"Pitch (y):{data.pitch: 08.3F}\n"
                 + f"Roll (x):{data.roll: 08.3F}\n",
             )
-            scr.addstr(13, 0, f"Calibration certainty: {bno.calibration_status}")
+            scr.addstr(
+                13,
+                0,
+                f"ms since last iteration: {(time.perf_counter_ns() - last_time) / 1e6: 08.3F}\n",
+            )
+            last_time = time.perf_counter_ns()
+
             scr.refresh()
             output_to_csv(file, data)
 

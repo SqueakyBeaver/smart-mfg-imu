@@ -1,3 +1,4 @@
+import math
 import time
 from dataclasses import dataclass
 from functools import cache
@@ -5,13 +6,14 @@ from functools import cache
 import board
 import busio
 from adafruit_bno08x import (
-    BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
+    BNO_REPORT_LINEAR_ACCELERATION,
     BNO_REPORT_MAGNETOMETER,
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
 from scipy.spatial.transform import Rotation as R
+from typing_extensions import override
 
 
 @dataclass
@@ -37,6 +39,7 @@ class IMUData:
     pitch: float
     roll: float
 
+    @override
     def __str__(self):
         return (
             f"{self.dev_id},{self.time},{self.accel_x},{self.accel_y},{self.accel_z},"
@@ -55,7 +58,7 @@ class IMU(BNO08X_I2C):
         except:
             super().__init__(i2c, address=0x4B)
 
-        self.enable_feature(BNO_REPORT_ACCELEROMETER)
+        self.enable_feature(BNO_REPORT_LINEAR_ACCELERATION)
         self.enable_feature(BNO_REPORT_GYROSCOPE)
         self.enable_feature(BNO_REPORT_MAGNETOMETER)
         self.enable_feature(BNO_REPORT_ROTATION_VECTOR)
@@ -66,7 +69,7 @@ class IMU(BNO08X_I2C):
 
         start_time: The first value of time.perf_counter_ns before this function is run
         """
-        accel_x, accel_y, accel_z = self.acceleration
+        accel_x, accel_y, accel_z = self.linear_acceleration
         gyro_x, gyro_y, gyro_z = self.gyro
         mag_x, mag_y, mag_z = self.magnetic
         rot_y, rot_p, rot_r = self._quat_to_ypr(*self.quaternion)
@@ -77,9 +80,9 @@ class IMU(BNO08X_I2C):
             accel_x,
             accel_y,
             accel_z,
-            gyro_x,
-            gyro_y,
-            gyro_z,
+            math.degrees(gyro_x),
+            math.degrees(gyro_y),
+            math.degrees(gyro_z),
             mag_x,
             mag_y,
             mag_z,
