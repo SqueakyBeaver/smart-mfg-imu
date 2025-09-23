@@ -6,6 +6,7 @@ from functools import cache
 import board
 import busio
 from adafruit_bno08x import (
+    BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR,
     BNO_REPORT_GYROSCOPE,
     BNO_REPORT_LINEAR_ACCELERATION,
     BNO_REPORT_MAGNETOMETER,
@@ -39,6 +40,10 @@ class IMUData:
     pitch: float
     roll: float
 
+    geo_y: float = 0
+    geo_p: float = 0
+    geo_r: float = 0
+
     @override
     def __str__(self):
         return (
@@ -62,6 +67,7 @@ class IMU(BNO08X_I2C):
         self.enable_feature(BNO_REPORT_GYROSCOPE)
         self.enable_feature(BNO_REPORT_MAGNETOMETER)
         self.enable_feature(BNO_REPORT_ROTATION_VECTOR)
+        self.enable_feature(BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR)
 
     def read_data(self, start_time: int) -> IMUData:
         """
@@ -73,6 +79,7 @@ class IMU(BNO08X_I2C):
         gyro_x, gyro_y, gyro_z = self.gyro
         mag_x, mag_y, mag_z = self.magnetic
         rot_y, rot_p, rot_r = self._quat_to_ypr(*self.quaternion)
+        geo_y, geo_p, geo_r = self._quat_to_ypr(*self.geo_quaternion)
 
         return IMUData(
             "bno085-testing",
@@ -89,14 +96,28 @@ class IMU(BNO08X_I2C):
             rot_y,
             rot_p,
             rot_r,
+            geo_y,
+            geo_p,
+            geo_r,
         )
 
+    @property
+    def rotation(self) -> tuple[float, float, float] | None:
+        """The IMU's rotation in terms of yaw, pitch, and roll"""
+        self._process_available_packets()
+        try:
+            return self._quat_to_ypr(self._readings[BNO_REPORT_ROTATION_VECTOR])
+        except KeyError:
+            raise RuntimeError("No quaternion report found, is it enabled?") from None
+
     @cache
-    def _quat_to_ypr(self, qx, qy, qz, qw):
+    def _quat_to_ypr(
+        self, quat: tuple[float, float, float, float]
+    ) -> tuple[float, float, float]:
         """
         Internal function to convert the quaternion rotation to yaw, pitch, and roll
         """
-        r = R.from_quat([qx, qy, qz, qw])
+        r = R.from_quat(quat)
 
         yaw, pitch, roll = r.as_euler("zyx", degrees=True)
         return (yaw, pitch, roll)

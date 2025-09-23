@@ -66,6 +66,13 @@ def basic_reading(scr: window):
             scr.addstr(
                 13,
                 0,
+                f"Geo Yaw (z):{data.geo_y: 08.3F}\n"
+                + f"Geo Pitch (y):{data.geo_p: 08.3F}\n"
+                + f"Geo Roll (x):{data.geo_r: 08.3F}\n",
+            )
+            scr.addstr(
+                16,
+                0,
                 f"ms since last iteration: {(time.perf_counter_ns() - last_time) / 1e6: 08.3F}\n",
             )
             last_time = time.perf_counter_ns()
