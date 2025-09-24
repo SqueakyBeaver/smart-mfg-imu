@@ -78,8 +78,8 @@ class IMU(BNO08X_I2C):
         accel_x, accel_y, accel_z = self.linear_acceleration
         gyro_x, gyro_y, gyro_z = self.gyro
         mag_x, mag_y, mag_z = self.magnetic
-        rot_y, rot_p, rot_r = self._quat_to_ypr(*self.quaternion)
-        geo_y, geo_p, geo_r = self._quat_to_ypr(*self.geo_quaternion)
+        rot_y, rot_p, rot_r = self._quat_to_ypr(self.quaternion)
+        geo_y, geo_p, geo_r = self._quat_to_ypr(self.geo_quaternion)
 
         return IMUData(
             "bno085-testing",
