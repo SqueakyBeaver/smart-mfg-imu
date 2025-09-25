@@ -40,10 +40,6 @@ class IMUData:
     pitch: float
     roll: float
 
-    geo_y: float = 0
-    geo_p: float = 0
-    geo_r: float = 0
-
     @override
     def __str__(self):
         return (
@@ -69,7 +65,7 @@ class IMU(BNO08X_I2C):
         self.enable_feature(BNO_REPORT_ROTATION_VECTOR)
         self.enable_feature(BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR)
 
-    def read_data(self, start_time: int) -> IMUData:
+    def read_data(self) -> IMUData:
         """
         Read accelerometer, gyroscope, magnetometer, and orientation data from the IMU
 
@@ -79,11 +75,10 @@ class IMU(BNO08X_I2C):
         gyro_x, gyro_y, gyro_z = self.gyro
         mag_x, mag_y, mag_z = self.magnetic
         rot_y, rot_p, rot_r = self._quat_to_ypr(self.quaternion)
-        geo_y, geo_p, geo_r = self._quat_to_ypr(self.geo_quaternion)
 
         return IMUData(
             "bno085-testing",
-            time.perf_counter_ns() - start_time,
+            int(time.time_ns() / 1e6),
             accel_x,
             accel_y,
             accel_z,
@@ -96,9 +91,6 @@ class IMU(BNO08X_I2C):
             rot_y,
             rot_p,
             rot_r,
-            geo_y,
-            geo_p,
-            geo_r,
         )
 
     @property

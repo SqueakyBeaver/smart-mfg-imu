@@ -1,5 +1,4 @@
 import time
-from collections.abc import Callable
 from curses import curs_set, window, wrapper
 
 from typedefs import IMU
@@ -33,7 +32,7 @@ def basic_reading(scr: window):
         )
 
         while True:
-            data = bno.read_data(t0)
+            data = bno.read_data()
 
             scr.addstr(
                 1,
@@ -66,13 +65,6 @@ def basic_reading(scr: window):
             scr.addstr(
                 13,
                 0,
-                f"Geo Yaw (z):{data.geo_y: 08.3F}\n"
-                + f"Geo Pitch (y):{data.geo_p: 08.3F}\n"
-                + f"Geo Roll (x):{data.geo_r: 08.3F}\n",
-            )
-            scr.addstr(
-                16,
-                0,
                 f"ms since last iteration: {(time.perf_counter_ns() - last_time) / 1e6: 08.3F}\n",
             )
             last_time = time.perf_counter_ns()
@@ -83,59 +75,17 @@ def basic_reading(scr: window):
             time.sleep(max((next(timer) - time.perf_counter_ns()) / 1e9, 0))
 
 
-def snapshot(src: window):
-    with open("data/bno_test.csv", "w+") as file:
-        file.write(
-            "snapshot_label,dev_id,time_ms,accel_x,accel_y,accel_z,"
-            + "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,"
-            + "rot_i,rot_j,_rot_k,rot_real\n"
-        )
-
-        while True:
-            inp = input("q to quit. Anything else to take a snapshot\n")
-            if inp.lower() == "q":
-                break
-
-            print("Taking a snapshot in 3...")
-            time.sleep(1)
-            print("Taking a snapshot in 2...")
-            time.sleep(1)
-            print("Taking a snapshot in 1...")
-            time.sleep(1)
-
-            data = bno.read_data(0)
-            data.time = 0
-
-            save_or_redo = input("r to discard the snapshot. Press s to save it\n")
-
-            if save_or_redo.lower() == "r":
-                continue
-
-            label = input("Snapshot taken. Make a label for it: ")
-            file.write(f'"{label}",')
-
-            output_to_csv(file, data)
-
-
 def main(scr: window):
     scr.clear()
     scr.addstr(
         0,
         0,
-        """Choose what you want to do:
-    1. Basic test 
-    2. Snapshot orientations
-    """,
+        "Press any key to start capturing data",
     )
-    choice = scr.getch()
-
-    choices: dict[int, Callable[..., None]] = {
-        ord("1"): basic_reading,
-        ord("2"): snapshot,
-    }
+    _ = scr.getch()
 
     scr.erase()
-    choices[choice](scr)
+    basic_reading(scr)
 
 
 if __name__ == "__main__":
