@@ -1,4 +1,4 @@
 Adafruit-Blinka
 adafruit-circuitpython-bno08x
 sense-hat
-scipy
+numpy
