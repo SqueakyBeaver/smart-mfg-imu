@@ -1,10 +1,10 @@
 import math
 import time
 from dataclasses import dataclass
-from functools import cache
 
 import board
 import busio
+import numpy as np
 from adafruit_bno08x import (
     BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR,
     BNO_REPORT_GYROSCOPE,
@@ -13,7 +13,6 @@ from adafruit_bno08x import (
     BNO_REPORT_ROTATION_VECTOR,
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
-from scipy.spatial.transform import Rotation as R
 from typing_extensions import override
 
 
@@ -49,8 +48,20 @@ class IMUData:
         )
 
 
+# HEY YOU
+# YEAH YOU
+# The DATA IS WEIRD
+# WHY IS IT THE SAME IN BATCHES OF 5????
+# IS IT NOT READING WELL?
+# WHAT THE FUCK
+# I think I figured it out and it's bc the report interval is 50ms
 class BNO08X_YPR(BNO08X_I2C):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        report_interval_ms=10,
+        **kwargs,
+    ):
         # Sometimes, the IMU can have an address
         # that is different from what the library expects
         print("constructed bno class")
@@ -59,11 +70,24 @@ class BNO08X_YPR(BNO08X_I2C):
         except:
             super().__init__(address=0x4B, *args, **kwargs)
 
-        self.enable_feature(BNO_REPORT_LINEAR_ACCELERATION)
-        self.enable_feature(BNO_REPORT_GYROSCOPE)
-        self.enable_feature(BNO_REPORT_MAGNETOMETER)
-        self.enable_feature(BNO_REPORT_ROTATION_VECTOR)
-        self.enable_feature(BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR)
+        # report_interval is in microseconds
+        # so all of these are 10 ms (the default is 50ms)
+        self.enable_feature(
+            BNO_REPORT_LINEAR_ACCELERATION, report_interval=report_interval_ms * 1000
+        )
+        self.enable_feature(
+            BNO_REPORT_GYROSCOPE, report_interval=report_interval_ms * 1000
+        )
+        self.enable_feature(
+            BNO_REPORT_MAGNETOMETER, report_interval=report_interval_ms * 1000
+        )
+        self.enable_feature(
+            BNO_REPORT_ROTATION_VECTOR, report_interval=report_interval_ms * 1000
+        )
+        self.enable_feature(
+            BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR,
+            report_interval=report_interval_ms * 1000,
+        )
 
     def read_data(self) -> IMUData:
         """
@@ -71,6 +95,8 @@ class BNO08X_YPR(BNO08X_I2C):
 
         start_time: The first value of time.perf_counter_ns before this function is run
         """
+        self._process_available_packets()
+
         read_time = int(time.time_ns() / 1e6)
         accel_x, accel_y, accel_z = self.linear_acceleration
         gyro_x, gyro_y, gyro_z = self.gyro
@@ -103,17 +129,50 @@ class BNO08X_YPR(BNO08X_I2C):
         except KeyError:
             raise RuntimeError("No quaternion report found, is it enabled?") from None
 
-    @cache
+    def _normalize_quaternion(self, q: tuple[float, float, float, float]):
+        w, x, y, z = q
+        magnitude = np.sqrt(w**2 + x**2 + y**2 + z**2)
+
+        if magnitude == 0:
+            raise ValueError("Cannot normalize a zero quaternion.")
+
+        return w / magnitude, x / magnitude, y / magnitude, z / magnitude
+
+    # @cache
     def _quat_to_ypr(
-        self, quat: tuple[float, float, float, float]
+        self, q: tuple[float, float, float, float]
     ) -> tuple[float, float, float]:
         """
         Internal function to convert the quaternion rotation to yaw, pitch, and roll
+        quat: quaternion in the form of (w, x, y, z)
         """
-        r = R.from_quat(quat)
+        # r = R.from_quat(q)
+        #
+        # yaw, pitch, roll = r.as_euler("zyx", degrees=True)
+        # return (yaw, pitch, roll)
+        w, x, y, z = self._normalize_quaternion(q)
 
-        yaw, pitch, roll = r.as_euler("zyx", degrees=True)
-        return (yaw, pitch, roll)
+        # Calculate the yaw, pitch, and roll in radians
+        yaw = np.arctan2(2.0 * (y * z + w * x), 1 - 2 * (x * x + y * y))
+        pitch = np.arcsin(2.0 * (w * y - x * z))
+        roll = np.arctan2(2.0 * (x * y + w * z), 1 - 2 * (y * y + z * z))
+
+        # Convert from radians to degrees
+        yaw = np.degrees(yaw)
+        pitch = np.degrees(pitch)
+        roll = np.degrees(roll)
+
+        # I would wrap the yaw, but it gives incorrect results if I do that
+        if pitch > 0:
+            pitch = 180 - pitch
+        else:
+            pitch = abs(pitch)
+        if roll > 0:
+            roll = 180 - roll
+        else:
+            roll = abs(roll)
+
+        return yaw, pitch, roll
 
 
 class IMU:

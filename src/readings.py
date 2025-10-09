@@ -4,6 +4,12 @@ from curses import curs_set, window
 from imu import IMU
 from utils import output_to_csv
 
+_header = (
+    "dev_id,time_ms,datetime,accel_x,accel_y,accel_z,"
+    + "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,"
+    + "yaw,pitch,roll\n"
+)
+
 
 def _next_time_step(t0: int, change_ns: int):
     while True:
@@ -24,11 +30,7 @@ def unattended_reading():
     last_time = t0
 
     with open("data/bno_test.csv", "w+") as file:
-        file.write(
-            "dev_id,time_ms,accel_x,accel_y,accel_z,"
-            + "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,"
-            + "yaw,pitch,roll\n"
-        )
+        file.write(_header)
 
         while True:
             data = bno.read_data()
@@ -57,11 +59,7 @@ def attended_reading(scr: window):
 
     scr.refresh()
     with open("data/bno_test.csv", "w+") as file:
-        file.write(
-            "dev_id,time_ms,accel_x,accel_y,accel_z,"
-            + "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,"
-            + "yaw,pitch,roll\n"
-        )
+        file.write(_header)
 
         while True:
             data = bno.read_data()
