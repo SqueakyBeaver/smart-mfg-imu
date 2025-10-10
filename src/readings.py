@@ -1,20 +1,9 @@
 import time
 from curses import curs_set, window
+from itertools import count
 
+from DataWriter import DataWriter
 from imu import IMU
-from utils import output_to_csv
-
-_header = (
-    "dev_id,time_ms,datetime,accel_x,accel_y,accel_z,"
-    + "gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z,"
-    + "yaw,pitch,roll\n"
-)
-
-
-def _next_time_step(t0: int, change_ns: int):
-    while True:
-        t0 += change_ns
-        yield t0
 
 
 def unattended_reading():
@@ -22,20 +11,16 @@ def unattended_reading():
     The function that will read, log, and send the data.
     For 'normal' use
     """
-    bno = IMU.get_conn()
+    with DataWriter() as writer:
+        bno = IMU.get_conn()
 
-    interval_ms = 10
-    t0 = time.time_ns()
-    timer = _next_time_step(t0, int(interval_ms * 1e6))
-    last_time = t0
-
-    with open("data/bno_test.csv", "w+") as file:
-        file.write(_header)
-
+        interval_ms = 10
+        t0 = time.time_ns()
+        timer = count(t0, int(interval_ms * 1e6))
         while True:
             data = bno.read_data()
 
-            output_to_csv(file, data)
+            writer.write_data(data)
 
             next_time = next(timer)
             while time.time_ns() < next_time:
@@ -47,20 +32,18 @@ def attended_reading(scr: window):
     The function that will read, log, and display the data.
     For 'ui' use
     """
-    bno = IMU.get_conn()
+    with DataWriter() as writer:
+        bno = IMU.get_conn()
 
-    scr.addstr(0, 0, "Basic reading")
-    curs_set(False)
+        scr.addstr(0, 0, "Basic reading")
+        curs_set(False)
 
-    interval_ms = 10
-    t0 = time.time_ns()
-    timer = _next_time_step(t0, int(interval_ms * 1e6))
-    last_time = t0
+        interval_ms = 10
+        t0 = time.time_ns()
+        timer = count(t0, int(interval_ms * 1e6))
+        last_time = t0
 
-    scr.refresh()
-    with open("data/bno_test.csv", "w+") as file:
-        file.write(_header)
-
+        scr.refresh()
         while True:
             data = bno.read_data()
 
@@ -100,7 +83,7 @@ def attended_reading(scr: window):
             last_time = time.perf_counter_ns()
 
             scr.refresh()
-            output_to_csv(file, data)
+            writer.write_data(data)
 
             next_time = next(timer)
             while time.time_ns() < next_time:
