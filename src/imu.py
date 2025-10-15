@@ -48,13 +48,6 @@ class IMUData:
         )
 
 
-# HEY YOU
-# YEAH YOU
-# The DATA IS WEIRD
-# WHY IS IT THE SAME IN BATCHES OF 5????
-# IS IT NOT READING WELL?
-# WHAT THE FUCK
-# I think I figured it out and it's bc the report interval is 50ms
 class BNO08X_YPR(BNO08X_I2C):
     def __init__(
         self,
