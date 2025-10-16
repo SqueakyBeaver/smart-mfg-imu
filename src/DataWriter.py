@@ -27,24 +27,30 @@ class DataWriter(ContextManager):
             + "mag_x,mag_y,mag_z,"
             + "yaw,pitch,roll\n"
         )
-
-        self.mqtt_client = Client(
-            broker_ip=self.mqtt_broker_ip,
-            broker_port=self.mqtt_broker_port,
-            client_type=Client.IMU,
-            device_id=socket.gethostname(),
-        )
+        try:
+            self.mqtt_client = Client(
+                broker_ip=self.mqtt_broker_ip,
+                broker_port=self.mqtt_broker_port,
+                client_type=Client.IMU,
+                device_id=socket.gethostname(),
+            )
+        except Exception as _:
+            self.mqtt_client = None
         
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.csv_file.close()
-        self.mqtt_client.disconnect()
+
+        if self.mqtt_client:
+            self.mqtt_client.disconnect()
         return False
 
     def write_data(self, data: IMUData):
         self._output_to_csv(data)
-        self._output_mqtt(data)
+
+        if self.mqtt_client:
+            self._output_mqtt(data)
 
     def _output_to_csv(self, data: IMUData):
         out = (
