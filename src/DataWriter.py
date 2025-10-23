@@ -14,11 +14,13 @@ class DataWriter(ContextManager):
         csv_fname=f"data/bno08X-{datetime.now().isoformat()}.csv",
         mqtt_broker_ip="127.0.0.1",
         mqtt_broker_port=1883,
+        device_id="joint-1", # TODO: Add config files or smth
         scr: window | None = None,
     ):
         self.csv_fname = csv_fname
         self.mqtt_broker_ip = mqtt_broker_ip
         self.mqtt_broker_port = mqtt_broker_port
+        self.device_id = device_id
         self.scr = scr
 
     def __enter__(self):
@@ -40,7 +42,7 @@ class DataWriter(ContextManager):
                 broker_ip=self.mqtt_broker_ip,
                 broker_port=self.mqtt_broker_port,
                 client_type=Client.IMU,
-                device_id=socket.gethostname(),
+                device_id=self.device_id,
             )
             if self.scr:
                 self.scr.addstr(
@@ -93,7 +95,7 @@ class DataWriter(ContextManager):
 
     def _output_mqtt(self, data: IMUData):
         self.mqtt_client.publish(
-            f"{data.dev_id},{data.time},{data.accel_x},{data.accel_y},{data.accel_z},"
+            f"{data.time},{data.accel_x},{data.accel_y},{data.accel_z},"
             + f"{data.gyro_x},{data.gyro_y},{data.gyro_z},{data.mag_x},{data.mag_y},"
             + f"{data.mag_z},{data.yaw},{data.pitch},{data.roll}"
         )
