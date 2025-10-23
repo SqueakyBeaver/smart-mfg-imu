@@ -156,14 +156,14 @@ class BNO08X_YPR(BNO08X_I2C):
         roll = np.degrees(roll)
 
         # I would wrap the yaw, but it gives incorrect results if I do that
-        if pitch > 0:
-            pitch = 180 - pitch
-        else:
-            pitch = abs(pitch)
-        if roll > 0:
-            roll = 180 - roll
-        else:
-            roll = abs(roll)
+        # if pitch > 0:
+        #     pitch = 180 - pitch
+        # else:
+        #     pitch = abs(pitch)
+        # if roll > 0:
+        #     roll = 180 - roll
+        # else:
+        #     roll = abs(roll)
 
         return yaw, pitch, roll
 

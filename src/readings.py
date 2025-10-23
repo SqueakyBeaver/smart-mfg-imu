@@ -11,7 +11,7 @@ def unattended_reading():
     The function that will read, log, and send the data.
     For 'normal' use
     """
-    with DataWriter() as writer:
+    with DataWriter(mqtt_broker_ip="196.182.1.76") as writer:
         bno = IMU.get_conn()
 
         interval_ms = 10
@@ -32,7 +32,7 @@ def attended_reading(scr: window):
     The function that will read, log, and display the data.
     For 'ui' use
     """
-    with DataWriter() as writer:
+    with DataWriter(mqtt_broker_ip="196.182.1.76", scr=scr) as writer:
         bno = IMU.get_conn()
 
         scr.addstr(0, 0, "Basic reading")

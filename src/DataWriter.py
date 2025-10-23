@@ -1,4 +1,5 @@
 import socket
+from curses import window
 from datetime import datetime
 from typing import ContextManager
 
@@ -10,13 +11,15 @@ from imu import IMUData
 class DataWriter(ContextManager):
     def __init__(
         self,
-        csv_fname=f"data/bno08X-{datetime.now()}.csv",
+        csv_fname=f"data/bno08X-{datetime.now().isoformat()}.csv",
         mqtt_broker_ip="127.0.0.1",
         mqtt_broker_port=1883,
+        scr: window | None = None,
     ):
         self.csv_fname = csv_fname
         self.mqtt_broker_ip = mqtt_broker_ip
         self.mqtt_broker_port = mqtt_broker_port
+        self.scr = scr
 
     def __enter__(self):
         self.csv_file = open(self.csv_fname, "w+")
@@ -28,15 +31,43 @@ class DataWriter(ContextManager):
             + "yaw,pitch,roll\n"
         )
         try:
+            if self.scr:
+                self.scr.addstr(20, 0, "Initializing MQTT connection...")
+                self.scr.refresh()
+            else:
+                print("Initializing MQTT connection...")
             self.mqtt_client = Client(
                 broker_ip=self.mqtt_broker_ip,
                 broker_port=self.mqtt_broker_port,
                 client_type=Client.IMU,
                 device_id=socket.gethostname(),
             )
+            if self.scr:
+                self.scr.addstr(
+                    21,
+                    0,
+                    f"Established MQTT connection to {self.mqtt_broker_ip}:{self.mqtt_broker_port}",
+                )
+            else:
+                print(
+                    f"Established MQTT connection to {self.mqtt_broker_ip}:{self.mqtt_broker_port}"
+                )
         except Exception as _:
             self.mqtt_client = None
-        
+            if self.scr:
+                self.scr.addstr(
+                    22,
+                    0,
+                    f"Could not establish MQTT connection to {self.mqtt_broker_ip}:{self.mqtt_broker_port}",
+                )
+            else:
+                print(
+                    f"Could not establish MQTT connection to {self.mqtt_broker_ip}:{self.mqtt_broker_port}"
+                )
+        finally:
+            if self.scr:
+                self.scr.refresh()
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
