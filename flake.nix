@@ -74,18 +74,7 @@
             packages = with python.pkgs; [
               venvShellHook
               pip
-              scipy
-
-              # Add whatever else you'd like here.
-              # pkgs.basedpyright
-
-              # pkgs.black
-              # or
-              # python.pkgs.black
-
-              # pkgs.ruff
-              # or
-              # python.pkgs.ruff
+              numpy
             ];
           };
         }
